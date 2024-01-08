@@ -3,4 +3,5 @@ __pycache__
 .terraform
 *lock*
 *.tfstate*
-*ansible
+*ansible/group_vars/all/*Januar*
+*.gitignore

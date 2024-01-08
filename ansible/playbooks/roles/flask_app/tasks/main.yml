@@ -1,0 +1,68 @@
+---
+- name: Update all packages to their latest version
+  ansible.builtin.apt:
+    name: "*"
+    state: latest
+    update_cache: yes
+
+- name: install python packages
+  ansible.builtin.apt:
+    pkg:
+    - python3-pip 
+    - python3-flask
+    - dos2unix
+
+- name: ensure folder for systemd unit
+  ansible.builtin.file:
+    path: /home/ubuntu/.config/systemd/user
+    state: directory
+    mode: '0755'
+
+- name: copy latency_check files 
+  copy:
+    src: "files/{{ item.src }}"
+    dest: "{{ item.dest }}"
+  with_items:
+  - { src: 'latency_check.sh', dest: '/home/ubuntu/latency_check.sh' }
+  - { src: 'latency_check.service', dest: '/etc/systemd/system/latency_check.service' }
+
+- name: Make latency_check.sh executable
+  ansible.builtin.file:
+    path: /home/ubuntu/latency_check.sh
+    mode: a+x
+
+- name: Dos2Unix auf latency_check.sh anwenden
+  ansible.builtin.shell:
+    cmd: dos2unix /home/ubuntu/latency_check.sh
+
+- name: start latency_check.service
+  ansible.builtin.systemd:
+    name: latency_check.service
+    state: started
+    enabled: yes
+
+- name: Reload systemd service
+  ansible.builtin.shell:
+    cmd: systemctl daemon-reload
+
+
+
+- name: ensure folder for flask app
+  ansible.builtin.file:
+    path: /home/ubuntu/myproject
+    state: directory
+    mode: '0755'
+
+- name: Download flask app
+  ansible.builtin.get_url:
+    url: "{{ item.url }}"
+    dest: "{{ item.dest }}"
+    mode: "{{ item.mode }}"
+  with_items: 
+    - { url: 'https://raw.githubusercontent.com/ramziatrous/wiederholung/main/myproject/app.py', dest: '/home/ubuntu/myproject/app.py', mode: '0755' }
+    - { url: 'https://raw.githubusercontent.com/ramziatrous/wiederholung/main/myproject/requirements.txt', dest: '/home/ubuntu/myproject/requirements.txt', mode: '0644' }
+
+- name: start flask app
+  shell: "flask run --host 0.0.0.0"
+  args:
+    chdir: /home/ubuntu/myproject
